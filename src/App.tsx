@@ -9,6 +9,8 @@ import Header from "./components/Header";
 import Landing from "./pages/Landing";
 import RoutePlanner from "./pages/RoutePlanner";
 import RouteSuggestions from "./pages/RouteSuggestions";
+import Profile from "./pages/Profile";
+import Statistics from "./pages/Statistics";
 import Community from "./pages/Community";
 import NotFound from "./pages/NotFound";
 
@@ -43,6 +45,8 @@ const App = () => {
                   />
                 } 
               />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/statistics" element={<Statistics />} />
               <Route path="/community" element={<Community />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
