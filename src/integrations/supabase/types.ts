@@ -9,6 +9,62 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      ads: {
+        Row: {
+          budget: number | null
+          business_id: string | null
+          created_at: string
+          description: string | null
+          end_date: string
+          id: string
+          image_url: string | null
+          payment_status: string | null
+          start_date: string
+          status: string | null
+          target_audience: Json | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          budget?: number | null
+          business_id?: string | null
+          created_at?: string
+          description?: string | null
+          end_date: string
+          id?: string
+          image_url?: string | null
+          payment_status?: string | null
+          start_date: string
+          status?: string | null
+          target_audience?: Json | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          budget?: number | null
+          business_id?: string | null
+          created_at?: string
+          description?: string | null
+          end_date?: string
+          id?: string
+          image_url?: string | null
+          payment_status?: string | null
+          start_date?: string
+          status?: string | null
+          target_audience?: Json | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ads_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       "Blue Plan User": {
         Row: {
           created_at: string
@@ -32,6 +88,148 @@ export type Database = {
           username?: string | null
         }
         Relationships: []
+      }
+      business_analytics: {
+        Row: {
+          business_id: string | null
+          created_at: string
+          date: string
+          id: string
+          metric_type: string
+          metric_value: number
+        }
+        Insert: {
+          business_id?: string | null
+          created_at?: string
+          date: string
+          id?: string
+          metric_type: string
+          metric_value: number
+        }
+        Update: {
+          business_id?: string | null
+          created_at?: string
+          date?: string
+          id?: string
+          metric_type?: string
+          metric_value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_analytics_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      businesses: {
+        Row: {
+          address: string | null
+          category: string | null
+          created_at: string
+          description: string | null
+          email: string | null
+          google_place_id: string | null
+          id: string
+          images: string[] | null
+          name: string
+          owner_id: string | null
+          phone: string | null
+          tags: string[] | null
+          updated_at: string
+          website_url: string | null
+        }
+        Insert: {
+          address?: string | null
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          google_place_id?: string | null
+          id?: string
+          images?: string[] | null
+          name: string
+          owner_id?: string | null
+          phone?: string | null
+          tags?: string[] | null
+          updated_at?: string
+          website_url?: string | null
+        }
+        Update: {
+          address?: string | null
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          google_place_id?: string | null
+          id?: string
+          images?: string[] | null
+          name?: string
+          owner_id?: string | null
+          phone?: string | null
+          tags?: string[] | null
+          updated_at?: string
+          website_url?: string | null
+        }
+        Relationships: []
+      }
+      live_events: {
+        Row: {
+          business_id: string | null
+          created_at: string
+          current_attendees: number | null
+          description: string | null
+          duration_hours: number | null
+          event_date: string
+          id: string
+          max_attendees: number | null
+          payment_status: string | null
+          price: number | null
+          status: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          business_id?: string | null
+          created_at?: string
+          current_attendees?: number | null
+          description?: string | null
+          duration_hours?: number | null
+          event_date: string
+          id?: string
+          max_attendees?: number | null
+          payment_status?: string | null
+          price?: number | null
+          status?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string | null
+          created_at?: string
+          current_attendees?: number | null
+          description?: string | null
+          duration_hours?: number | null
+          event_date?: string
+          id?: string
+          max_attendees?: number | null
+          payment_status?: string | null
+          price?: number | null
+          status?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_events_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

@@ -12,6 +12,7 @@ import RouteSuggestions from "./pages/RouteSuggestions";
 import Profile from "./pages/Profile";
 import Statistics from "./pages/Statistics";
 import Community from "./pages/Community";
+import BusinessDashboard from "./pages/BusinessDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -48,6 +49,7 @@ const App = () => {
               <Route path="/profile" element={<Profile />} />
               <Route path="/statistics" element={<Statistics />} />
               <Route path="/community" element={<Community />} />
+              <Route path="/business" element={<BusinessDashboard />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
