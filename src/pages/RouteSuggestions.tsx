@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +13,7 @@ import {
   Heart,
   Play
 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface RoutePreferences {
   availableTime: string;
@@ -28,8 +29,40 @@ interface RouteSuggestionsProps {
 
 const RouteSuggestions = ({ preferences }: RouteSuggestionsProps) => {
   const [selectedRoute, setSelectedRoute] = useState<number | null>(null);
+  const [businesses, setBusinesses] = useState<any[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
 
-  // Mock data for route suggestions
+  useEffect(() => {
+    loadBusinessData();
+  }, []);
+
+  const loadBusinessData = async () => {
+    try {
+      // Load businesses
+      const { data: businessData } = await supabase
+        .from('businesses')
+        .select('*')
+        .limit(10);
+
+      // Load live events
+      const { data: eventData } = await supabase
+        .from('live_events')
+        .select(`
+          *,
+          businesses(name, address, category)
+        `)
+        .eq('status', 'active')
+        .gte('event_date', new Date().toISOString())
+        .limit(5);
+
+      if (businessData) setBusinesses(businessData);
+      if (eventData) setEvents(eventData);
+    } catch (error) {
+      console.error('Error loading business data:', error);
+    }
+  };
+
+  // Enhanced route data with real business data and attractive images
   const routes = [
     {
       id: 1,
@@ -39,10 +72,16 @@ const RouteSuggestions = ({ preferences }: RouteSuggestionsProps) => {
       distance: "3.2 km",
       rating: 4.8,
       reviews: 127,
+      image: "https://images.unsplash.com/photo-1501854140801-50d01698950b?w=400&h=250&fit=crop",
+      mapImage: "https://images.unsplash.com/photo-1472396961693-142e6e269027?w=400&h=300&fit=crop",
       highlights: [
-        { name: "Contemporary Art Museum", type: "partner", verified: true },
+        ...businesses.slice(0, 2).map(business => ({
+          name: business.name || "Local Business",
+          type: "partner",
+          verified: true,
+          category: business.category
+        })),
         { name: "Historic Central Square", type: "attraction" },
-        { name: "Local Coffee Roasters", type: "partner", verified: true },
         { name: "Artisan Bookstore", type: "attraction" }
       ],
       transportation: "Walking",
@@ -53,13 +92,19 @@ const RouteSuggestions = ({ preferences }: RouteSuggestionsProps) => {
       name: "Culinary Adventure Trail",
       description: "A foodie's paradise with local markets, eateries, and culinary experiences",
       duration: "3 hours",
-      distance: "2.8 km", 
+      distance: "2.8 km",
       rating: 4.9,
       reviews: 89,
+      image: "https://images.unsplash.com/photo-1466442929976-97f336a657be?w=400&h=250&fit=crop",
+      mapImage: "https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=400&h=300&fit=crop",
       highlights: [
         { name: "Farmers Market", type: "attraction" },
-        { name: "Craft Brewery & Taproom", type: "partner", verified: true },
-        { name: "Traditional Bakery", type: "partner", verified: true },
+        ...businesses.filter(b => b.category?.toLowerCase().includes('restaurant') || b.category?.toLowerCase().includes('bar')).slice(0, 2).map(business => ({
+          name: business.name || "Local Eatery",
+          type: "partner",
+          verified: true,
+          category: business.category
+        })),
         { name: "Gourmet Food Hall", type: "attraction" }
       ],
       transportation: "Walking",
@@ -67,20 +112,26 @@ const RouteSuggestions = ({ preferences }: RouteSuggestionsProps) => {
     },
     {
       id: 3,
-      name: "Nature & Parks Circuit",
-      description: "Peaceful route through green spaces and scenic viewpoints",
-      duration: "2 hours", 
-      distance: "4.1 km",
+      name: "Live Events & Entertainment",
+      description: "Experience the vibrant nightlife and live events happening now",
+      duration: "4 hours",
+      distance: "2.1 km",
       rating: 4.7,
       reviews: 156,
+      image: "https://images.unsplash.com/photo-1500673922987-e212871fec22?w=400&h=250&fit=crop",
+      mapImage: "https://images.unsplash.com/photo-1501854140801-50d01698950b?w=400&h=300&fit=crop",
       highlights: [
-        { name: "Botanical Gardens", type: "attraction" },
-        { name: "Scenic Overlook Point", type: "attraction" },
-        { name: "Riverside Walking Trail", type: "attraction" },
-        { name: "Historic Bridge", type: "attraction" }
+        ...events.slice(0, 3).map(event => ({
+          name: event.title || "Live Event",
+          type: "event",
+          verified: true,
+          business: event.businesses?.name,
+          time: new Date(event.event_date).toLocaleTimeString()
+        })),
+        { name: "Entertainment District", type: "attraction" }
       ],
       transportation: "Walking",
-      difficulty: "Moderate"
+      difficulty: "Easy"
     }
   ];
 
@@ -111,20 +162,36 @@ const RouteSuggestions = ({ preferences }: RouteSuggestionsProps) => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Map Section */}
             <div className="lg:col-span-2">
-              <Card className="shadow-lg h-96 lg:h-[600px]">
+              <Card className="shadow-lg h-96 lg:h-[600px] overflow-hidden">
                 <CardContent className="p-0 h-full">
-                  <div className="w-full h-full bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg flex items-center justify-center relative overflow-hidden">
-                    <div className="text-center text-blue-600">
-                      <MapPin className="w-16 h-16 mx-auto mb-4" />
-                      <p className="text-lg font-medium">Interactive Route Map</p>
-                      <p className="text-sm opacity-75">View your personalized routes</p>
+                  {selectedRoute ? (
+                    <div className="relative w-full h-full">
+                      <img
+                        src={routes.find(r => r.id === selectedRoute)?.mapImage}
+                        alt="Route Map"
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+                      <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg p-3">
+                        <p className="text-sm font-medium text-gray-900">
+                          {routes.find(r => r.id === selectedRoute)?.name}
+                        </p>
+                        <p className="text-xs text-gray-600">Interactive Route View</p>
+                      </div>
+                      {/* Mock route indicators */}
+                      <div className="absolute top-1/4 left-1/3 w-4 h-4 bg-red-500 rounded-full animate-pulse border-2 border-white shadow-lg"></div>
+                      <div className="absolute top-1/2 left-1/2 w-4 h-4 bg-green-500 rounded-full animate-pulse border-2 border-white shadow-lg"></div>
+                      <div className="absolute bottom-1/3 right-1/3 w-4 h-4 bg-blue-500 rounded-full animate-pulse border-2 border-white shadow-lg"></div>
                     </div>
-                    
-                    {/* Mock route indicators */}
-                    <div className="absolute top-1/4 left-1/3 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                    <div className="absolute top-1/2 left-1/2 w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                    <div className="absolute bottom-1/3 right-1/3 w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
-                  </div>
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg flex items-center justify-center relative overflow-hidden">
+                      <div className="text-center text-blue-600">
+                        <MapPin className="w-16 h-16 mx-auto mb-4" />
+                        <p className="text-lg font-medium">Interactive Route Map</p>
+                        <p className="text-sm opacity-75">Select a route to view the map</p>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -138,22 +205,30 @@ const RouteSuggestions = ({ preferences }: RouteSuggestionsProps) => {
               {routes.map((route, index) => (
                 <Card 
                   key={route.id} 
-                  className={`shadow-lg cursor-pointer transition-all duration-300 ${
+                  className={`shadow-lg cursor-pointer transition-all duration-300 overflow-hidden ${
                     selectedRoute === route.id 
                       ? 'ring-2 ring-primary shadow-xl' 
                       : 'hover:shadow-xl'
                   }`}
                   onClick={() => setSelectedRoute(route.id)}
                 >
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <CardTitle className="text-lg">{route.name}</CardTitle>
-                      <div className="flex items-center space-x-1">
-                        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                        <span className="text-sm font-medium">{route.rating}</span>
-                        <span className="text-sm text-gray-500">({route.reviews})</span>
+                  <div className="relative h-32 overflow-hidden">
+                    <img
+                      src={route.image}
+                      alt={route.name}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+                    <div className="absolute top-2 right-2">
+                      <div className="flex items-center space-x-1 bg-white/90 backdrop-blur-sm rounded-full px-2 py-1">
+                        <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                        <span className="text-xs font-medium">{route.rating}</span>
                       </div>
                     </div>
+                  </div>
+                  
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg">{route.name}</CardTitle>
                     <p className="text-gray-600 text-sm">{route.description}</p>
                   </CardHeader>
                   
@@ -172,17 +247,20 @@ const RouteSuggestions = ({ preferences }: RouteSuggestionsProps) => {
 
                     <div className="space-y-2">
                       <h4 className="font-medium text-sm">Route Highlights:</h4>
-                      {route.highlights.map((highlight, idx) => (
+                      {route.highlights.slice(0, 3).map((highlight, idx) => (
                         <div key={idx} className="flex items-center justify-between text-sm">
                           <div className="flex items-center">
                             <MapPin className="w-3 h-3 mr-2 text-primary" />
-                            <span>{highlight.name}</span>
+                            <span className="truncate">{highlight.name}</span>
                           </div>
                           {highlight.verified && (
-                            <CheckCircle className="w-4 h-4 text-blue-500" />
+                            <CheckCircle className="w-4 h-4 text-blue-500 flex-shrink-0" />
                           )}
                         </div>
                       ))}
+                      {route.highlights.length > 3 && (
+                        <p className="text-xs text-gray-500">+{route.highlights.length - 3} more stops</p>
+                      )}
                     </div>
 
                     <div className="flex space-x-2 pt-4">

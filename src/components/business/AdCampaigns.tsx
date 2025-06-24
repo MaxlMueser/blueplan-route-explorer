@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,89 +8,159 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Target, DollarSign, Calendar, BarChart, Plus, Edit, Pause, Play, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const AdCampaigns = () => {
   const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [campaigns, setCampaigns] = useState([
-    {
-      id: 1,
-      title: 'Weekend Brunch Special',
-      description: 'Promote our new weekend brunch menu',
-      budget: 200,
-      spent: 45.50,
-      startDate: '2024-01-15',
-      endDate: '2024-01-30',
-      status: 'active',
-      clicks: 1247,
-      impressions: 8932,
-      targetAudience: 'Food lovers, Weekend dining'
-    },
-    {
-      id: 2,
-      title: 'Date Night Package',
-      description: 'Special romantic dinner package for couples',
-      budget: 150,
-      spent: 89.20,
-      startDate: '2024-01-10',
-      endDate: '2024-02-14',
-      status: 'paused',
-      clicks: 892,
-      impressions: 5643,
-      targetAudience: 'Couples, Romance seekers'
-    }
-  ]);
+  const [businessId, setBusinessId] = useState<string | null>(null);
+  const [campaigns, setCampaigns] = useState<any[]>([]);
 
   const [newCampaign, setNewCampaign] = useState({
     title: '',
     description: '',
     budget: 100,
-    startDate: '',
-    endDate: '',
-    targetAudience: ''
+    start_date: '',
+    end_date: '',
+    target_audience: ''
   });
 
-  const handleCreateCampaign = () => {
-    const campaign = {
-      id: Date.now(),
-      ...newCampaign,
-      spent: 0,
-      status: 'active',
-      clicks: 0,
-      impressions: 0
-    };
-    setCampaigns([campaign, ...campaigns]);
-    setNewCampaign({
-      title: '',
-      description: '',
-      budget: 100,
-      startDate: '',
-      endDate: '',
-      targetAudience: ''
-    });
-    setShowCreateForm(false);
-    toast({
-      title: "Campaign Created",
-      description: "Your ad campaign is now live and promoting your business to BluePlan users.",
-    });
+  useEffect(() => {
+    loadBusinessAndCampaigns();
+  }, []);
+
+  const loadBusinessAndCampaigns = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Get business ID
+      const { data: business } = await supabase
+        .from('businesses')
+        .select('id')
+        .eq('owner_id', user.id)
+        .maybeSingle();
+
+      if (business) {
+        setBusinessId(business.id);
+        
+        // Load campaigns for this business
+        const { data: campaignsData } = await supabase
+          .from('ads')
+          .select('*')
+          .eq('business_id', business.id)
+          .order('created_at', { ascending: false });
+
+        if (campaignsData) {
+          setCampaigns(campaignsData);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+    }
   };
 
-  const toggleCampaignStatus = (id: number) => {
-    setCampaigns(campaigns.map(campaign => 
-      campaign.id === id 
-        ? { ...campaign, status: campaign.status === 'active' ? 'paused' : 'active' }
-        : campaign
-    ));
+  const handleCreateCampaign = async () => {
+    if (!businessId) {
+      toast({
+        title: "Business Required",
+        description: "Please create a business profile first.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const campaignData = {
+        ...newCampaign,
+        business_id: businessId,
+        start_date: new Date(newCampaign.start_date).toISOString(),
+        end_date: new Date(newCampaign.end_date).toISOString(),
+        target_audience: { audience: newCampaign.target_audience }
+      };
+
+      const { data, error } = await supabase
+        .from('ads')
+        .insert([campaignData])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setCampaigns([data, ...campaigns]);
+      setNewCampaign({
+        title: '',
+        description: '',
+        budget: 100,
+        start_date: '',
+        end_date: '',
+        target_audience: ''
+      });
+      setShowCreateForm(false);
+      
+      toast({
+        title: "Campaign Created",
+        description: "Your ad campaign is now live and promoting your business to BluePlan users.",
+      });
+    } catch (error) {
+      console.error('Error creating campaign:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create campaign. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const deleteCampaign = (id: number) => {
-    setCampaigns(campaigns.filter(campaign => campaign.id !== id));
-    toast({
-      title: "Campaign Deleted",
-      description: "The ad campaign has been removed.",
-    });
+  const toggleCampaignStatus = async (id: string, currentStatus: string) => {
+    try {
+      const newStatus = currentStatus === 'active' ? 'paused' : 'active';
+      const { error } = await supabase
+        .from('ads')
+        .update({ status: newStatus })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setCampaigns(campaigns.map(campaign => 
+        campaign.id === id 
+          ? { ...campaign, status: newStatus }
+          : campaign
+      ));
+    } catch (error) {
+      console.error('Error updating campaign:', error);
+    }
   };
 
+  const deleteCampaign = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('ads')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setCampaigns(campaigns.filter(campaign => campaign.id !== id));
+      toast({
+        title: "Campaign Deleted",
+        description: "The ad campaign has been removed.",
+      });
+    } catch (error) {
+      console.error('Error deleting campaign:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete campaign.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -155,8 +224,8 @@ const AdCampaigns = () => {
                 <Input
                   id="startDate"
                   type="date"
-                  value={newCampaign.startDate}
-                  onChange={(e) => setNewCampaign({...newCampaign, startDate: e.target.value})}
+                  value={newCampaign.start_date}
+                  onChange={(e) => setNewCampaign({...newCampaign, start_date: e.target.value})}
                 />
               </div>
               <div className="space-y-2">
@@ -164,15 +233,15 @@ const AdCampaigns = () => {
                 <Input
                   id="endDate"
                   type="date"
-                  value={newCampaign.endDate}
-                  onChange={(e) => setNewCampaign({...newCampaign, endDate: e.target.value})}
+                  value={newCampaign.end_date}
+                  onChange={(e) => setNewCampaign({...newCampaign, end_date: e.target.value})}
                 />
               </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="targetAudience">Target Audience</Label>
-              <Select onValueChange={(value) => setNewCampaign({...newCampaign, targetAudience: value})}>
+              <Select onValueChange={(value) => setNewCampaign({...newCampaign, target_audience: value})}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select target audience" />
                 </SelectTrigger>
@@ -191,8 +260,8 @@ const AdCampaigns = () => {
               <Button variant="outline" onClick={() => setShowCreateForm(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleCreateCampaign} className="gradient-primary text-white">
-                Launch Campaign
+              <Button onClick={handleCreateCampaign} disabled={loading} className="gradient-primary text-white">
+                {loading ? 'Creating...' : 'Launch Campaign'}
               </Button>
             </div>
           </CardContent>
@@ -217,7 +286,7 @@ const AdCampaigns = () => {
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => toggleCampaignStatus(campaign.id)}
+                    onClick={() => toggleCampaignStatus(campaign.id, campaign.status)}
                   >
                     {campaign.status === 'active' ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                   </Button>
@@ -239,53 +308,51 @@ const AdCampaigns = () => {
                 <div className="flex items-center gap-2">
                   <DollarSign className="w-4 h-4 text-muted-foreground" />
                   <div>
-                    <div className="text-sm font-medium">${campaign.spent}</div>
+                    <div className="text-sm font-medium">$0</div>
                     <div className="text-xs text-muted-foreground">of ${campaign.budget}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <BarChart className="w-4 h-4 text-muted-foreground" />
                   <div>
-                    <div className="text-sm font-medium">{campaign.impressions.toLocaleString()}</div>
+                    <div className="text-sm font-medium">0</div>
                     <div className="text-xs text-muted-foreground">Impressions</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Target className="w-4 h-4 text-muted-foreground" />
                   <div>
-                    <div className="text-sm font-medium">{campaign.clicks}</div>
+                    <div className="text-sm font-medium">0</div>
                     <div className="text-xs text-muted-foreground">Clicks</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-muted-foreground" />
                   <div>
-                    <div className="text-sm font-medium">{campaign.startDate}</div>
+                    <div className="text-sm font-medium">{new Date(campaign.start_date).toLocaleDateString()}</div>
                     <div className="text-xs text-muted-foreground">Start Date</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-muted-foreground" />
                   <div>
-                    <div className="text-sm font-medium">{campaign.endDate}</div>
+                    <div className="text-sm font-medium">{new Date(campaign.end_date).toLocaleDateString()}</div>
                     <div className="text-xs text-muted-foreground">End Date</div>
                   </div>
                 </div>
                 <div>
-                  <div className="text-sm font-medium">
-                    {((campaign.clicks / campaign.impressions) * 100).toFixed(1)}%
-                  </div>
+                  <div className="text-sm font-medium">0%</div>
                   <div className="text-xs text-muted-foreground">CTR</div>
                 </div>
               </div>
               <div className="text-sm text-muted-foreground">
-                <strong>Target:</strong> {campaign.targetAudience}
+                <strong>Target:</strong> {campaign.target_audience?.audience || 'Not specified'}
               </div>
               <div className="mt-2">
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div 
                     className="bg-blue-600 h-2 rounded-full" 
-                    style={{ width: `${(campaign.spent / campaign.budget) * 100}%` }}
+                    style={{ width: `0%` }}
                   ></div>
                 </div>
               </div>

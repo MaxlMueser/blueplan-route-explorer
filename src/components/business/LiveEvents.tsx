@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,77 +7,134 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, Users, DollarSign, Plus, Edit, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const LiveEvents = () => {
   const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [events, setEvents] = useState([
-    {
-      id: 1,
-      title: 'Happy Hour Special',
-      description: 'Half price drinks and appetizers',
-      date: '2024-01-20',
-      time: '17:00',
-      duration: 3,
-      price: 0,
-      maxAttendees: 50,
-      currentAttendees: 23,
-      status: 'active'
-    },
-    {
-      id: 2,
-      title: 'Live Jazz Night',
-      description: 'Featuring local jazz musicians',
-      date: '2024-01-25',
-      time: '20:00',
-      duration: 4,
-      price: 15,
-      maxAttendees: 80,
-      currentAttendees: 45,
-      status: 'active'
-    }
-  ]);
+  const [businessId, setBusinessId] = useState<string | null>(null);
+  const [events, setEvents] = useState<any[]>([]);
 
   const [newEvent, setNewEvent] = useState({
     title: '',
     description: '',
-    date: '',
-    time: '',
-    duration: 2,
+    event_date: '',
+    duration_hours: 2,
     price: 0,
-    maxAttendees: 50
+    max_attendees: 50
   });
 
-  const handleCreateEvent = () => {
-    const event = {
-      id: Date.now(),
-      ...newEvent,
-      currentAttendees: 0,
-      status: 'active'
-    };
-    setEvents([event, ...events]);
-    setNewEvent({
-      title: '',
-      description: '',
-      date: '',
-      time: '',
-      duration: 2,
-      price: 0,
-      maxAttendees: 50
-    });
-    setShowCreateForm(false);
-    toast({
-      title: "Event Created",
-      description: "Your live event has been created and will be promoted to BluePlan users.",
-    });
+  useEffect(() => {
+    loadBusinessAndEvents();
+  }, []);
+
+  const loadBusinessAndEvents = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Get business ID
+      const { data: business } = await supabase
+        .from('businesses')
+        .select('id')
+        .eq('owner_id', user.id)
+        .maybeSingle();
+
+      if (business) {
+        setBusinessId(business.id);
+        
+        // Load events for this business
+        const { data: eventsData } = await supabase
+          .from('live_events')
+          .select('*')
+          .eq('business_id', business.id)
+          .order('event_date', { ascending: false });
+
+        if (eventsData) {
+          setEvents(eventsData);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+    }
   };
 
-  const deleteEvent = (id: number) => {
-    setEvents(events.filter(event => event.id !== id));
-    toast({
-      title: "Event Deleted",
-      description: "The event has been removed from your listings.",
-    });
+  const handleCreateEvent = async () => {
+    if (!businessId) {
+      toast({
+        title: "Business Required",
+        description: "Please create a business profile first.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const eventData = {
+        ...newEvent,
+        business_id: businessId,
+        event_date: new Date(newEvent.event_date).toISOString()
+      };
+
+      const { data, error } = await supabase
+        .from('live_events')
+        .insert([eventData])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setEvents([data, ...events]);
+      setNewEvent({
+        title: '',
+        description: '',
+        event_date: '',
+        duration_hours: 2,
+        price: 0,
+        max_attendees: 50
+      });
+      setShowCreateForm(false);
+      
+      toast({
+        title: "Event Created",
+        description: "Your live event has been created and will be promoted to BluePlan users.",
+      });
+    } catch (error) {
+      console.error('Error creating event:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create event. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteEvent = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('live_events')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setEvents(events.filter(event => event.id !== id));
+      toast({
+        title: "Event Deleted",
+        description: "The event has been removed from your listings.",
+      });
+    } catch (error) {
+      console.error('Error deleting event:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete event.",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -121,8 +177,8 @@ const LiveEvents = () => {
                 <Input
                   id="maxAttendees"
                   type="number"
-                  value={newEvent.maxAttendees}
-                  onChange={(e) => setNewEvent({...newEvent, maxAttendees: parseInt(e.target.value)})}
+                  value={newEvent.max_attendees}
+                  onChange={(e) => setNewEvent({...newEvent, max_attendees: parseInt(e.target.value)})}
                 />
               </div>
             </div>
@@ -140,21 +196,12 @@ const LiveEvents = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="date">Date</Label>
+                <Label htmlFor="date">Date & Time</Label>
                 <Input
                   id="date"
-                  type="date"
-                  value={newEvent.date}
-                  onChange={(e) => setNewEvent({...newEvent, date: e.target.value})}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="time">Start Time</Label>
-                <Input
-                  id="time"
-                  type="time"
-                  value={newEvent.time}
-                  onChange={(e) => setNewEvent({...newEvent, time: e.target.value})}
+                  type="datetime-local"
+                  value={newEvent.event_date}
+                  onChange={(e) => setNewEvent({...newEvent, event_date: e.target.value})}
                 />
               </div>
               <div className="space-y-2">
@@ -162,30 +209,29 @@ const LiveEvents = () => {
                 <Input
                   id="duration"
                   type="number"
-                  value={newEvent.duration}
-                  onChange={(e) => setNewEvent({...newEvent, duration: parseInt(e.target.value)})}
+                  value={newEvent.duration_hours}
+                  onChange={(e) => setNewEvent({...newEvent, duration_hours: parseInt(e.target.value)})}
                 />
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="price">Entry Price ($)</Label>
-              <Input
-                id="price"
-                type="number"
-                step="0.01"
-                value={newEvent.price}
-                onChange={(e) => setNewEvent({...newEvent, price: parseFloat(e.target.value)})}
-                placeholder="0 for free events"
-              />
+              <div className="space-y-2">
+                <Label htmlFor="price">Entry Price ($)</Label>
+                <Input
+                  id="price"
+                  type="number"
+                  step="0.01"
+                  value={newEvent.price}
+                  onChange={(e) => setNewEvent({...newEvent, price: parseFloat(e.target.value)})}
+                  placeholder="0 for free events"
+                />
+              </div>
             </div>
 
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => setShowCreateForm(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleCreateEvent} className="gradient-primary text-white">
-                Create Event ($25/event)
+              <Button onClick={handleCreateEvent} disabled={loading} className="gradient-primary text-white">
+                {loading ? 'Creating...' : 'Create Event ($25/event)'}
               </Button>
             </div>
           </CardContent>
@@ -224,22 +270,22 @@ const LiveEvents = () => {
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm">{event.date}</span>
+                  <span className="text-sm">{new Date(event.event_date).toLocaleDateString()}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm">{event.time} ({event.duration}h)</span>
+                  <span className="text-sm">{new Date(event.event_date).toLocaleTimeString()} ({event.duration_hours}h)</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Users className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm">{event.currentAttendees}/{event.maxAttendees}</span>
+                  <span className="text-sm">{event.current_attendees}/{event.max_attendees}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <DollarSign className="w-4 h-4 text-muted-foreground" />
                   <span className="text-sm">{event.price === 0 ? 'Free' : `$${event.price}`}</span>
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  {Math.round((event.currentAttendees / event.maxAttendees) * 100)}% full
+                  {Math.round((event.current_attendees / event.max_attendees) * 100)}% full
                 </div>
               </div>
             </CardContent>

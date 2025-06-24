@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,25 +7,64 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Plus, X, Upload, MapPin, Phone, Mail, Globe, Tag, Store } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const BusinessProfile = () => {
   const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [businessId, setBusinessId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    name: 'Blue Moon Restaurant',
-    description: 'A cozy restaurant serving Mediterranean cuisine with a modern twist.',
-    address: '123 Main Street, Downtown',
-    phone: '+1 (555) 123-4567',
-    email: 'info@bluemoon.com',
-    website: 'https://bluemoon.com',
-    category: 'Restaurant'
+    name: '',
+    description: '',
+    address: '',
+    phone: '',
+    email: '',
+    website_url: '',
+    category: ''
   });
   
-  const [tags, setTags] = useState(['Pet-friendly', 'Family-friendly', 'Outdoor seating', 'Vegan options']);
+  const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState('');
-  const [images, setImages] = useState([
-    'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=300',
-    'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=300'
-  ]);
+  const [images, setImages] = useState<string[]>([]);
+
+  useEffect(() => {
+    loadBusinessProfile();
+  }, []);
+
+  const loadBusinessProfile = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: business, error } = await supabase
+        .from('businesses')
+        .select('*')
+        .eq('owner_id', user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error loading business:', error);
+        return;
+      }
+
+      if (business) {
+        setBusinessId(business.id);
+        setFormData({
+          name: business.name || '',
+          description: business.description || '',
+          address: business.address || '',
+          phone: business.phone || '',
+          email: business.email || '',
+          website_url: business.website_url || '',
+          category: business.category || ''
+        });
+        setTags(business.tags || []);
+        setImages(business.images || []);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -43,11 +81,62 @@ const BusinessProfile = () => {
     setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
-  const handleSave = () => {
-    toast({
-      title: "Profile Updated",
-      description: "Your business profile has been successfully updated.",
-    });
+  const handleSave = async () => {
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to save your business profile.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const businessData = {
+        ...formData,
+        tags,
+        images,
+        owner_id: user.id
+      };
+
+      let result;
+      if (businessId) {
+        result = await supabase
+          .from('businesses')
+          .update(businessData)
+          .eq('id', businessId);
+      } else {
+        result = await supabase
+          .from('businesses')
+          .insert([businessData])
+          .select()
+          .single();
+        
+        if (result.data) {
+          setBusinessId(result.data.id);
+        }
+      }
+
+      if (result.error) {
+        throw result.error;
+      }
+
+      toast({
+        title: "Profile Updated",
+        description: "Your business profile has been successfully updated.",
+      });
+    } catch (error) {
+      console.error('Error saving business:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save business profile. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -139,8 +228,8 @@ const BusinessProfile = () => {
               </Label>
               <Input
                 id="website"
-                value={formData.website}
-                onChange={(e) => handleInputChange('website', e.target.value)}
+                value={formData.website_url}
+                onChange={(e) => handleInputChange('website_url', e.target.value)}
               />
             </div>
           </div>
@@ -221,8 +310,8 @@ const BusinessProfile = () => {
       </Card>
 
       <div className="flex justify-end">
-        <Button onClick={handleSave} className="gradient-primary text-white">
-          Save Changes
+        <Button onClick={handleSave} disabled={loading} className="gradient-primary text-white">
+          {loading ? 'Saving...' : 'Save Changes'}
         </Button>
       </div>
     </div>
