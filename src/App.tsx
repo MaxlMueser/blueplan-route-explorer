@@ -31,7 +31,7 @@ const App = () => {
             <Routes>
               <Route path="/" element={<Landing />} />
               <Route 
-                path="/planner" 
+                path="/route-planner" 
                 element={
                   <RoutePlanner 
                     onPreferencesSubmit={setRoutePreferences} 
@@ -39,7 +39,7 @@ const App = () => {
                 } 
               />
               <Route 
-                path="/suggestions" 
+                path="/route-suggestions" 
                 element={
                   <RouteSuggestions 
                     preferences={routePreferences} 

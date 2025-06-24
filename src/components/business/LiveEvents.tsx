@@ -58,21 +58,43 @@ const LiveEvents = () => {
   };
 
   const handleCreateEvent = async () => {
-    if (!businessId) {
-      toast({
-        title: "Business Required",
-        description: "Please create a business profile first.",
-        variant: "destructive"
-      });
-      return;
+    // Create demo business if none exists
+    let currentBusinessId = businessId;
+    
+    if (!currentBusinessId) {
+      try {
+        const { data: newBusiness, error } = await supabase
+          .from('businesses')
+          .insert([{
+            name: 'Demo Business',
+            owner_id: crypto.randomUUID()
+          }])
+          .select()
+          .single();
+        
+        if (error) throw error;
+        currentBusinessId = newBusiness.id;
+        setBusinessId(currentBusinessId);
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to create business. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
     }
 
     setLoading(true);
     try {
       const eventData = {
-        ...newEvent,
-        business_id: businessId,
-        event_date: new Date(newEvent.event_date).toISOString()
+        title: newEvent.title || 'Demo Event',
+        description: newEvent.description,
+        business_id: currentBusinessId,
+        event_date: newEvent.event_date ? new Date(newEvent.event_date).toISOString() : new Date().toISOString(),
+        duration_hours: newEvent.duration_hours,
+        price: newEvent.price,
+        max_attendees: newEvent.max_attendees
       };
 
       const { data, error } = await supabase
@@ -175,7 +197,7 @@ const LiveEvents = () => {
                   id="maxAttendees"
                   type="number"
                   value={newEvent.max_attendees}
-                  onChange={(e) => setNewEvent({...newEvent, max_attendees: parseInt(e.target.value)})}
+                  onChange={(e) => setNewEvent({...newEvent, max_attendees: parseInt(e.target.value) || 50})}
                 />
               </div>
             </div>
@@ -207,7 +229,7 @@ const LiveEvents = () => {
                   id="duration"
                   type="number"
                   value={newEvent.duration_hours}
-                  onChange={(e) => setNewEvent({...newEvent, duration_hours: parseInt(e.target.value)})}
+                  onChange={(e) => setNewEvent({...newEvent, duration_hours: parseInt(e.target.value) || 2})}
                 />
               </div>
               <div className="space-y-2">
@@ -217,7 +239,7 @@ const LiveEvents = () => {
                   type="number"
                   step="0.01"
                   value={newEvent.price}
-                  onChange={(e) => setNewEvent({...newEvent, price: parseFloat(e.target.value)})}
+                  onChange={(e) => setNewEvent({...newEvent, price: parseFloat(e.target.value) || 0})}
                   placeholder="0 for free events"
                 />
               </div>
@@ -228,7 +250,7 @@ const LiveEvents = () => {
                 Cancel
               </Button>
               <Button onClick={handleCreateEvent} disabled={loading} className="gradient-primary text-white">
-                {loading ? 'Creating...' : 'Create Event ($25/event)'}
+                {loading ? 'Creating...' : 'Create Event'}
               </Button>
             </div>
           </CardContent>

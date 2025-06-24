@@ -33,7 +33,6 @@ const BusinessProfile = () => {
 
   const loadBusinessProfile = async () => {
     try {
-      // Load the first business (demo mode - no user authentication)
       const { data: business, error } = await supabase
         .from('businesses')
         .select('*')
@@ -82,11 +81,14 @@ const BusinessProfile = () => {
   const handleSave = async () => {
     setLoading(true);
     try {
+      // Generate a random UUID for demo purposes
+      const demoUserId = crypto.randomUUID();
+      
       const businessData = {
         ...formData,
         tags,
         images,
-        owner_id: 'demo-user' // Demo user ID
+        owner_id: demoUserId
       };
 
       let result;
@@ -147,6 +149,7 @@ const BusinessProfile = () => {
                 id="name"
                 value={formData.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
+                placeholder="Enter business name"
               />
             </div>
             <div className="space-y-2">
@@ -181,6 +184,7 @@ const BusinessProfile = () => {
                 id="address"
                 value={formData.address}
                 onChange={(e) => handleInputChange('address', e.target.value)}
+                placeholder="Business address"
               />
             </div>
             <div className="space-y-2">
@@ -192,6 +196,7 @@ const BusinessProfile = () => {
                 id="phone"
                 value={formData.phone}
                 onChange={(e) => handleInputChange('phone', e.target.value)}
+                placeholder="Phone number"
               />
             </div>
           </div>
@@ -207,6 +212,7 @@ const BusinessProfile = () => {
                 type="email"
                 value={formData.email}
                 onChange={(e) => handleInputChange('email', e.target.value)}
+                placeholder="Business email"
               />
             </div>
             <div className="space-y-2">
@@ -218,6 +224,7 @@ const BusinessProfile = () => {
                 id="website"
                 value={formData.website_url}
                 onChange={(e) => handleInputChange('website_url', e.target.value)}
+                placeholder="Website URL"
               />
             </div>
           </div>
