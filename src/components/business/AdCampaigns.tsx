@@ -32,14 +32,11 @@ const AdCampaigns = () => {
 
   const loadBusinessAndCampaigns = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      // Get business ID
+      // Get first business (demo mode)
       const { data: business } = await supabase
         .from('businesses')
         .select('id')
-        .eq('owner_id', user.id)
+        .limit(1)
         .maybeSingle();
 
       if (business) {
@@ -160,7 +157,6 @@ const AdCampaigns = () => {
     }
   };
 
-  
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">

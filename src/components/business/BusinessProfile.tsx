@@ -33,13 +33,11 @@ const BusinessProfile = () => {
 
   const loadBusinessProfile = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
+      // Load the first business (demo mode - no user authentication)
       const { data: business, error } = await supabase
         .from('businesses')
         .select('*')
-        .eq('owner_id', user.id)
+        .limit(1)
         .maybeSingle();
 
       if (error) {
@@ -84,21 +82,11 @@ const BusinessProfile = () => {
   const handleSave = async () => {
     setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast({
-          title: "Authentication Required",
-          description: "Please log in to save your business profile.",
-          variant: "destructive"
-        });
-        return;
-      }
-
       const businessData = {
         ...formData,
         tags,
         images,
-        owner_id: user.id
+        owner_id: 'demo-user' // Demo user ID
       };
 
       let result;

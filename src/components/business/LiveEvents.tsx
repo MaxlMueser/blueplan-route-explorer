@@ -31,14 +31,11 @@ const LiveEvents = () => {
 
   const loadBusinessAndEvents = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      // Get business ID
+      // Get first business (demo mode)
       const { data: business } = await supabase
         .from('businesses')
         .select('id')
-        .eq('owner_id', user.id)
+        .limit(1)
         .maybeSingle();
 
       if (business) {
