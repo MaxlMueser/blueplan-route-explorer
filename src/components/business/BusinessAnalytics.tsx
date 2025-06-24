@@ -1,264 +1,353 @@
 
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
-import { TrendingUp, TrendingDown, Users, Eye, MapPin, Clock } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
+import { TrendingUp, Users, Eye, Target, MapPin, Calendar } from 'lucide-react';
 
 const BusinessAnalytics = () => {
-  // Sample data for charts
-  const visitorData = [
-    { date: '2024-01-01', views: 45, visits: 8, conversions: 2 },
-    { date: '2024-01-02', views: 52, visits: 12, conversions: 3 },
-    { date: '2024-01-03', views: 38, visits: 7, conversions: 1 },
-    { date: '2024-01-04', views: 71, visits: 15, conversions: 4 },
-    { date: '2024-01-05', views: 63, visits: 18, conversions: 5 },
-    { date: '2024-01-06', views: 89, visits: 23, conversions: 7 },
-    { date: '2024-01-07', views: 95, visits: 28, conversions: 8 }
+  const [timeframe, setTimeframe] = useState('7d');
+
+  const overviewData = [
+    { name: 'Mon', views: 45, visits: 8, conversions: 3 },
+    { name: 'Tue', views: 52, visits: 12, conversions: 5 },
+    { name: 'Wed', views: 38, visits: 6, conversions: 2 },
+    { name: 'Thu', views: 61, visits: 15, conversions: 7 },
+    { name: 'Fri', views: 78, visits: 22, conversions: 11 },
+    { name: 'Sat', views: 95, visits: 35, conversions: 18 },
+    { name: 'Sun', views: 67, visits: 18, conversions: 8 },
+  ];
+
+  const audienceData = [
+    { name: '18-24', value: 15, color: '#3b82f6' },
+    { name: '25-34', value: 35, color: '#8b5cf6' },
+    { name: '35-44', value: 28, color: '#06b6d4' },
+    { name: '45-54', value: 15, color: '#10b981' },
+    { name: '55+', value: 7, color: '#f59e0b' },
   ];
 
   const hourlyData = [
-    { hour: '9', traffic: 12 },
-    { hour: '10', traffic: 18 },
-    { hour: '11', traffic: 25 },
-    { hour: '12', traffic: 45 },
-    { hour: '13', traffic: 38 },
-    { hour: '14', traffic: 32 },
-    { hour: '15', traffic: 28 },
-    { hour: '16', traffic: 35 },
-    { hour: '17', traffic: 52 },
-    { hour: '18', traffic: 68 },
-    { hour: '19', traffic: 78 },
-    { hour: '20', traffic: 65 },
-    { hour: '21', traffic: 45 },
-    { hour: '22', traffic: 25 }
+    { hour: '6AM', visitors: 2 },
+    { hour: '8AM', visitors: 5 },
+    { hour: '10AM', visitors: 8 },
+    { hour: '12PM', visitors: 15 },
+    { hour: '2PM', visitors: 12 },
+    { hour: '4PM', visitors: 18 },
+    { hour: '6PM', visitors: 25 },
+    { hour: '8PM', visitors: 32 },
+    { hour: '10PM', visitors: 20 },
+    { hour: '12AM', visitors: 8 },
   ];
 
-  const sourceData = [
-    { name: 'BluePlan App', value: 65, color: '#3b82f6' },
-    { name: 'Direct Search', value: 20, color: '#10b981' },
-    { name: 'Social Media', value: 10, color: '#f59e0b' },
-    { name: 'Word of Mouth', value: 5, color: '#ef4444' }
+  const topLocations = [
+    { location: 'Downtown Area', visits: 45, percentage: 35 },
+    { location: 'University District', visits: 32, percentage: 25 },
+    { location: 'Shopping Center', visits: 25, percentage: 20 },
+    { location: 'Residential North', visits: 15, percentage: 12 },
+    { location: 'Business District', visits: 10, percentage: 8 },
   ];
 
-  const chartConfig = {
-    views: {
-      label: "Profile Views",
-      color: "#3b82f6",
-    },
-    visits: {
-      label: "Physical Visits",
-      color: "#10b981",
-    },
-    conversions: {
-      label: "Conversions",
-      color: "#f59e0b",
-    },
-  };
+  const timeframes = [
+    { value: '7d', label: 'Last 7 days' },
+    { value: '30d', label: 'Last 30 days' },
+    { value: '90d', label: 'Last 3 months' },
+  ];
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">Business Analytics</h2>
-        <p className="text-muted-foreground">Track your business performance and customer insights</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold">Business Analytics</h2>
+          <p className="text-muted-foreground">Track your business performance and customer insights</p>
+        </div>
+        <div className="flex gap-2">
+          {timeframes.map((tf) => (
+            <Button
+              key={tf.value}
+              variant={timeframe === tf.value ? "default" : "outline"}
+              size="sm"
+              onClick={() => setTimeframe(tf.value)}
+            >
+              {tf.label}
+            </Button>
+          ))}
+        </div>
       </div>
 
-      {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Views</CardTitle>
-            <Eye className="h-4 w-4 text-muted-foreground" />
+        <Card className="gradient-primary text-white">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-blue-100">Total Views</CardTitle>
+              <Eye className="w-4 h-4 text-blue-200" />
+            </div>
+            <div className="text-3xl font-bold">2,847</div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">2,847</div>
-            <div className="flex items-center text-xs text-muted-foreground">
-              <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
-              +12% from last month
+            <div className="flex items-center gap-1">
+              <TrendingUp className="w-4 h-4 text-green-300" />
+              <span className="text-xs text-blue-100">+12% from last period</span>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Physical Visits</CardTitle>
-            <MapPin className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Actual Visits</CardTitle>
+              <MapPin className="w-4 h-4 text-muted-foreground" />
+            </div>
+            <div className="text-3xl font-bold">324</div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">324</div>
-            <div className="flex items-center text-xs text-muted-foreground">
-              <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
-              +8% from last month
+            <div className="flex items-center gap-1">
+              <TrendingUp className="w-4 h-4 text-green-500" />
+              <span className="text-xs text-muted-foreground">+8% from last period</span>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Conversion Rate</CardTitle>
+              <Target className="w-4 h-4 text-muted-foreground" />
+            </div>
+            <div className="text-3xl font-bold">11.4%</div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">11.4%</div>
-            <div className="flex items-center text-xs text-muted-foreground">
-              <TrendingDown className="h-3 w-3 text-red-500 mr-1" />
-              -2% from last month
+            <div className="flex items-center gap-1">
+              <TrendingUp className="w-4 h-4 text-green-500" />
+              <span className="text-xs text-muted-foreground">+2.3% from last period</span>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg. Visit Duration</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Avg. Visit Duration</CardTitle>
+              <Calendar className="w-4 h-4 text-muted-foreground" />
+            </div>
+            <div className="text-3xl font-bold">45m</div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">45min</div>
-            <div className="flex items-center text-xs text-muted-foreground">
-              <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
-              +5% from last month
+            <div className="flex items-center gap-1">
+              <TrendingUp className="w-4 h-4 text-green-500" />
+              <span className="text-xs text-muted-foreground">+5m from last period</span>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Visitor Trends</CardTitle>
-            <CardDescription>Views, visits, and conversions over the last 7 days</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer config={chartConfig} className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={visitorData}>
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="audience">Audience</TabsTrigger>
+          <TabsTrigger value="locations">Locations</TabsTrigger>
+          <TabsTrigger value="performance">Performance</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Views vs Visits Trend</CardTitle>
+              <CardDescription>Track how app views translate to actual visits</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={overviewData}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" tickFormatter={(value) => new Date(value).toLocaleDateString()} />
+                  <XAxis dataKey="name" />
                   <YAxis />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Line type="monotone" dataKey="views" stroke="#3b82f6" strokeWidth={2} />
-                  <Line type="monotone" dataKey="visits" stroke="#10b981" strokeWidth={2} />
-                  <Line type="monotone" dataKey="conversions" stroke="#f59e0b" strokeWidth={2} />
+                  <Tooltip />
+                  <Bar dataKey="views" fill="#3b82f6" name="Views" />
+                  <Bar dataKey="visits" fill="#10b981" name="Visits" />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Conversion Funnel</CardTitle>
+              <CardDescription>See how users progress from viewing to visiting</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={200}>
+                <LineChart data={overviewData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="conversions" stroke="#f59e0b" strokeWidth={2} name="Conversions" />
                 </LineChart>
               </ResponsiveContainer>
-            </ChartContainer>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Peak Hours</CardTitle>
-            <CardDescription>Customer traffic by hour of the day</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer config={{}} className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
+        <TabsContent value="audience" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Age Demographics</CardTitle>
+                <CardDescription>Age distribution of your visitors</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie
+                      data={audienceData}
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={80}
+                      dataKey="value"
+                      label={({ name, value }) => `${name}: ${value}%`}
+                    >
+                      {audienceData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Visitor Interests</CardTitle>
+                <CardDescription>Top interests that led visitors to your business</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {[
+                  { interest: 'Local Food', percentage: 45, count: 156 },
+                  { interest: 'Pet-friendly', percentage: 32, count: 112 },
+                  { interest: 'Date Night', percentage: 28, count: 98 },
+                  { interest: 'Family Dining', percentage: 24, count: 84 },
+                  { interest: 'Outdoor Seating', percentage: 18, count: 63 },
+                ].map((item) => (
+                  <div key={item.interest} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Badge variant="secondary">{item.interest}</Badge>
+                      <span className="text-sm text-muted-foreground">{item.count} visitors</span>
+                    </div>
+                    <div className="text-sm font-medium">{item.percentage}%</div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="locations" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Top Visitor Locations</CardTitle>
+              <CardDescription>Areas where most of your visitors come from</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {topLocations.map((location, index) => (
+                  <div key={location.location} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                        <span className="text-sm font-medium text-primary">#{index + 1}</span>
+                      </div>
+                      <div>
+                        <p className="font-medium">{location.location}</p>
+                        <p className="text-sm text-muted-foreground">{location.visits} visits</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-medium">{location.percentage}%</p>
+                      <div className="w-20 h-2 bg-gray-200 rounded-full">
+                        <div 
+                          className="h-2 bg-primary rounded-full" 
+                          style={{ width: `${location.percentage}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="performance" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Hourly Visitor Pattern</CardTitle>
+              <CardDescription>When are your visitors most active</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={hourlyData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="hour" />
                   <YAxis />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="traffic" fill="#3b82f6" />
+                  <Tooltip />
+                  <Bar dataKey="visitors" fill="#8b5cf6" />
                 </BarChart>
               </ResponsiveContainer>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Traffic Sources</CardTitle>
-            <CardDescription>How customers discover your business</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-center h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={sourceData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={120}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {sourceData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="grid grid-cols-2 gap-4 mt-4">
-              {sourceData.map((source) => (
-                <div key={source.name} className="flex items-center gap-2">
-                  <div 
-                    className="w-3 h-3 rounded-full" 
-                    style={{ backgroundColor: source.color }}
-                  ></div>
-                  <span className="text-sm">{source.name}</span>
-                  <Badge variant="secondary" className="ml-auto">
-                    {source.value}%
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Peak Hours</CardTitle>
+                <CardDescription>Your busiest times</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {[
+                  { time: '8:00 PM', visitors: 32, change: '+15%' },
+                  { time: '6:00 PM', visitors: 25, change: '+8%' },
+                  { time: '4:00 PM', visitors: 18, change: '+5%' },
+                ].map((item) => (
+                  <div key={item.time} className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">{item.time}</p>
+                      <p className="text-sm text-muted-foreground">{item.visitors} visitors</p>
+                    </div>
+                    <Badge variant="secondary" className="text-green-600">
+                      {item.change}
+                    </Badge>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Performance Insights</CardTitle>
-            <CardDescription>Key metrics and recommendations</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-              <div className="flex items-center gap-2 mb-2">
-                <TrendingUp className="w-4 h-4 text-green-600" />
-                <span className="font-medium text-green-800">Strong Performance</span>
-              </div>
-              <p className="text-sm text-green-700">
-                Your conversion rate is above average for restaurants in your area.
-              </p>
-            </div>
-
-            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <div className="flex items-center gap-2 mb-2">
-                <Clock className="w-4 h-4 text-blue-600" />
-                <span className="font-medium text-blue-800">Peak Hours</span>
-              </div>
-              <p className="text-sm text-blue-700">
-                Your busiest hours are 6-8 PM. Consider creating events during off-peak times.
-              </p>
-            </div>
-
-            <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
-              <div className="flex items-center gap-2 mb-2">
-                <Target className="w-4 h-4 text-orange-600" />
-                <span className="font-medium text-orange-800">Opportunity</span>
-              </div>
-              <p className="text-sm text-orange-700">
-                65% of your traffic comes from BluePlan. Consider targeted ads to increase reach.
-              </p>
-            </div>
-
-            <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
-              <div className="flex items-center gap-2 mb-2">
-                <Users className="w-4 h-4 text-purple-600" />
-                <span className="font-medium text-purple-800">Customer Retention</span>
-              </div>
-              <p className="text-sm text-purple-700">
-                Create loyalty events to encourage repeat visits from your existing customers.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Quiet Hours</CardTitle>
+                <CardDescription>Less busy periods</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {[
+                  { time: '6:00 AM', visitors: 2, change: '-5%' },
+                  { time: '10:00 AM', visitors: 8, change: '-2%' },
+                  { time: '12:00 AM', visitors: 8, change: '+1%' },
+                ].map((item) => (
+                  <div key={item.time} className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">{item.time}</p>
+                      <p className="text-sm text-muted-foreground">{item.visitors} visitors</p>
+                    </div>
+                    <Badge variant="outline" className="text-muted-foreground">
+                      {item.change}
+                    </Badge>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

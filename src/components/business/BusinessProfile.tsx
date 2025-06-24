@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
-import { Plus, X, Upload, MapPin, Phone, Mail, Globe, Tag } from 'lucide-react';
+import { Plus, X, Upload, MapPin, Phone, Mail, Globe, Tag, Store } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const BusinessProfile = () => {
